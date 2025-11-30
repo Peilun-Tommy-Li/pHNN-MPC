@@ -1,0 +1,50 @@
+pendulum:
+  m: 1.0
+  l: 1.0
+  g: 9.81
+  b: 0.1
+  dt: 0.05
+  T: 5.0 # traj length = T/dt
+  num_traj: 50
+  u_min: -2.0
+  u_max: 2.0
+
+# Using trajectory-preserving dataset
+training:
+  preserve_traj: True
+  seq_len: 64 # length of 1 sub-trajectory
+  batch_size: 5 # num of trajectory in each batch=1
+  lr: 0.0001
+  epochs: 5
+
+model:
+  state_dim: 2
+  input_dim: 1
+
+  H_mlp:
+    activation: nn.Tanh
+    bias: true
+    dropout: 0.0
+    hidden_sizes: [64, 64]
+    layer_norm: false
+
+  J_mlp:
+    activation: nn.ReLu
+    bias: true
+    dropout: 0.0
+    hidden_sizes: [64, 64]
+    layer_norm: false
+
+  R_mlp:
+    activation: nn.Tanh
+    bias: true
+    dropout: 0.0
+    hidden_sizes: [64]
+    layer_norm: false
+
+  G_mlp:
+    activation: nn.Tanh
+    bias: true
+    dropout: 0.0
+    hidden_sizes: [64]
+    layer_norm: false
