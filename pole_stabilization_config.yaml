@@ -1,0 +1,55 @@
+# Configuration for Pole-Only Stabilization MPC
+# Goal: Stabilize pole angle and angular velocity to zero
+# Cart position and velocity are not penalized
+
+cartpole:
+  dt: 0.02
+  T: 5.0
+
+# MPC Configuration for Pole Stabilization
+mpc:
+  # Prediction horizon (number of steps)
+  horizon: 10
+
+  # State cost weights [x, theta, x_dot, theta_dot]
+  # Set x and x_dot weights to 0 to ignore cart position
+  Q_diag: [0.0, 1000.0, 0.0, 100.0]  # Only penalize theta and theta_dot
+
+  # Control effort cost (keep small to allow aggressive control)
+  R_diag: [0.0001]
+
+  # Target state (upright equilibrium)
+  # [x, theta, x_dot, theta_dot]
+  x_target: [0.0, 0.0, 0.0, 0.0]
+
+  # Control constraints (N)
+  u_min: -30.0
+  u_max: 30.0
+
+  # Optimization parameters
+  optimizer_steps: 50
+  learning_rate: 0.03
+  verbose: false
+
+  # Simulation parameters
+  simulation_steps: 500
+  initial_state: [0.0, 0.05, 0.0, 0.0]  # Start with 0.1 rad (~5.7°) perturbation
+
+# Stability criteria (only for pole angle and velocity)
+stability:
+  # Tolerance for stability check [x, theta, x_dot, theta_dot]
+  # Set large values for x and x_dot since we don't care about them
+  tolerance: [100.0, 0.05, 100.0, 0.1]  # Only check theta and theta_dot
+  min_duration: 1.0  # Must stay stable for 1 second
+
+# Visualization
+visualization:
+  max_control_steps: 500
+  gif_fps: 30
+  gif_output_path: results/pole_stabilization.gif
+  render_mode: rgb_array
+
+# Model path
+model:
+  config_path: cartpole_mpc_config.yaml
+  weights_path: models/checkpoint_epoch_760.pth

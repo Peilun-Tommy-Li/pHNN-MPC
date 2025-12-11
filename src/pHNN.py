@@ -1,7 +1,12 @@
 import torch
 import torch.nn as nn
-from src.NN import MLP
 import yaml
+
+# Import MLP - handle both direct and module import
+try:
+    from src.NN import MLP
+except ImportError:
+    from NN import MLP
 
 
 class pHNN(nn.Module):
@@ -21,7 +26,16 @@ class pHNN(nn.Module):
 
         self.R_net = self._create_mlp(config['model']['R_mlp'], state_dim, state_dim * state_dim)
         self.H_net = self._create_mlp(config['model']['H_mlp'], state_dim, 1)
-        self.G_net = self._create_mlp(config['model']['G_mlp'], state_dim, input_dim * state_dim)
+
+        # G matrix: either fixed or learned
+        if config['model'].get('fixed_G', False):
+            # Fixed G matrix (non-trainable)
+            fixed_G_value = torch.tensor(config['model']['G_value'], dtype=torch.float32)
+            self.register_buffer('G_fixed', fixed_G_value)
+            self.G_net = None
+        else:
+            # Learned G matrix (state-dependent)
+            self.G_net = self._create_mlp(config['model']['G_mlp'], state_dim, input_dim * state_dim)
 
     def _create_mlp(self, params, input_dim, output_dim):
         activation_class = getattr(nn, params['activation'].split('.')[-1])
@@ -68,10 +82,15 @@ class pHNN(nn.Module):
         # constant J
         J_batch = (self.J - self.J.T).unsqueeze(0).expand(B, n, n)
 
-        # control
-        G = self.G_net(x)  # (B, n)
-        if G.ndim == 2:
-            G = G.unsqueeze(2)  # (B, n, 1)
+        # control - either fixed or learned G
+        if self.G_net is None:
+            # Use fixed G matrix
+            G = self.G_fixed.unsqueeze(0).expand(B, -1, -1)  # (B, n, m)
+        else:
+            # Use learned G matrix
+            G = self.G_net(x)  # (B, n*m)
+            G = G.view(B, n, m)  # (B, n, m)
+
         u = u.unsqueeze(2)  # (B, m, 1)
         dH = dH.unsqueeze(2)  # (B, n, 1)
 
